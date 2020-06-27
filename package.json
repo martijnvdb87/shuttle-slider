@@ -4,7 +4,7 @@
   "description": "A simple slider",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "browser-sync start --index src/index.html --server --files src/* src/**/*"
   },
   "repository": {
     "type": "git",
@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/martijnvdb87/shuttle-slider/issues"
   },
-  "homepage": "https://github.com/martijnvdb87/shuttle-slider#readme"
+  "homepage": "https://github.com/martijnvdb87/shuttle-slider#readme",
+  "devDependencies": {
+    "browser-sync": "^2.26.7"
+  }
 }
