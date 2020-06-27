@@ -60,7 +60,7 @@
                 return mainElement.dataset.shuttleSlider;
         }
 
-        return 'both';
+        return 'x';
     }
 
     function getCursorPosition(e, type) {
@@ -71,8 +71,6 @@
         if (type == 'y') {
             return e.pageY || (e.touches && e.touches[0] && e.touches[0].pageY) || 0;
         }
-
-        return;
     }
 
     function getTranslate(type) {
@@ -86,8 +84,23 @@
         if (type == 'y') {
             return contentRect.y - targetRect.y;
         }
+    }
 
-        return;
+    function getMaxOffset(type) {
+        childrenElements = getElementChildren();
+        if (childrenElements.length > 0) {
+            var mainRect = mainElement.getBoundingClientRect();
+            var contentRect = contentElement.getBoundingClientRect();
+            var lastChild = childrenElements[childrenElements.length - 1].getBoundingClientRect();
+
+            if (type == 'x') {
+                return (lastChild.x + lastChild.width - contentRect.x - mainRect.width) * -1;
+            }
+
+            if (type == 'y') {
+                return (lastChild.y + lastChild.height - contentRect.y - mainRect.height) * -1;
+            }
+        }
     }
 
 
@@ -110,13 +123,12 @@
         isPointerDown = true;
 
         contentElement = getElementContent();
-        childrenElements = getElementChildren();
         mode = getMode();
 
         pointerStartX = getCursorPosition(e, 'x');
         pointerStartY = getCursorPosition(e, 'y');
 
-        mainElement.setAttribute('data-shuttle-scroll-holding', '');
+        mainElement.setAttribute('data-shuttle-slider-holding', '');
     }
 
     function pointerMove(e) {
@@ -140,7 +152,7 @@
             startTranslateX = getTranslate('x');
             startTranslateY = getTranslate('y');
 
-            mainElement.setAttribute('data-shuttle-scroll-dragging', '');
+            mainElement.setAttribute('data-shuttle-slider-dragging', '');
         }
 
         if (!isDragging) return;
@@ -151,26 +163,82 @@
         var translateX = startTranslateX;
         var translateY = startTranslateY;
 
-        if (mode == 'x' || mode == 'both') {
+        if (mode == 'x') {
             translateX += dragX;
         }
 
-        if (mode == 'y' || mode == 'both') {
+        if (mode == 'y') {
             translateY += dragY;
         }
 
+        if (0 < translateX || translateX < getMaxOffset('x')) {
+            //
+        }
+
+        if (0 < translateY || translateY < getMaxOffset('y')) {
+            //
+        }
+
         contentElement.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px)';
-
-
     }
 
     function pointerUp(e) {
         if (!isPointerDown) return;
 
+        stopDragging();
+    }
+
+    function stopDragging() {
+        if (!isDragging) return;
+
         isPointerDown = false;
         isDragging = false;
-        mainElement.removeAttribute('data-shuttle-scroll-dragging');
-        mainElement.removeAttribute('data-shuttle-scroll-holding');
+        mainElement.removeAttribute('data-shuttle-slider-dragging');
+        mainElement.removeAttribute('data-shuttle-slider-holding');
+
+
+        var endTranslateX = getTranslate('x') * -1;
+        var endTranslateY = getTranslate('y') * -1;
+
+
+        childrenElements = getElementChildren();
+
+        var contentRect = contentElement.getBoundingClientRect();
+
+        var translateX = 0;
+        var translateY = 0;
+
+        childrenElements.find(function (child) {
+            var childRect = child.getBoundingClientRect();
+
+            if (endTranslateX < childRect.x - contentRect.x + (childRect.width / 2)) {
+                translateX = (childRect.x - contentRect.x) * -1;
+                return true;
+            }
+        });
+
+        childrenElements.find(function (child) {
+            var childRect = child.getBoundingClientRect();
+
+            if (endTranslateY < childRect.y - contentRect.y + (childRect.height / 2)) {
+                translateY = (childRect.y - contentRect.y) * -1;
+                return true;
+            }
+        });
+
+        translateX = Math.max(translateX, getMaxOffset('x'));
+        translateY = Math.max(translateY, getMaxOffset('y'));
+
+
+        if (mode == 'x') {
+            translateY = 0;
+        }
+
+        if (mode == 'y') {
+            translateX = 0;
+        }
+
+        contentElement.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px)';
     }
 
     init();

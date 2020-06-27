@@ -1,3 +1,31 @@
-[data-shuttle-scroll] {
-    
+[data-shuttle-slider] {
+    user-select: none;
+    touch-action: none;
+    overflow: hidden;
+}
+
+[data-shuttle-slider="x"] {
+    touch-action: pan-y;
+}
+
+[data-shuttle-slider="y"] {
+    touch-action: pan-x;
+}
+
+[data-shuttle-slider] > ol {
+    display: flex;
+    margin: 0px;
+    padding: 0px;
+    list-style: none;
+    transition: all 240ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+[data-shuttle-slider="y"] > ol {
+    flex-direction: column;
+}
+
+[data-shuttle-slider] > ol > li {
+    flex: 0 0 auto;
+}
+[data-shuttle-slider][data-shuttle-slider-dragging] > ol {
+    transition-duration: 0ms;
 }
