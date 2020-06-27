@@ -1,0 +1,19 @@
+{
+  "name": "shuttle-slider",
+  "version": "0.1.0",
+  "description": "A simple slider",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martijnvdb87/shuttle-slider.git"
+  },
+  "author": "Martijn van den Bosch",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/martijnvdb87/shuttle-slider/issues"
+  },
+  "homepage": "https://github.com/martijnvdb87/shuttle-slider#readme"
+}
