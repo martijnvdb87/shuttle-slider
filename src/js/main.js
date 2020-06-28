@@ -17,6 +17,11 @@
     var startTranslateX = 0;
     var startTranslateY = 0;
 
+    var pointerHistory = [];
+
+    var currentPageX = 0;
+    var currentPageY = 0;
+
     function init() {
         setEvents();
     }
@@ -117,6 +122,43 @@
         }
     }
 
+    function intervalPointer() {
+        addPointerHistory(currentPageX, currentPageY);
+
+        setTimeout(function () {
+            if (isDragging) {
+                intervalPointer();
+            }
+        }, 10);
+
+    }
+
+    function addPointerHistory(x, y) {
+        pointerHistory.unshift({
+            x: x,
+            y: y,
+            timestamp: Date.now()
+        });
+
+        pointerHistory = pointerHistory.slice(0, 10);
+    }
+
+    function pointerSpeed(type) {
+        if (pointerHistory.length > 0) {
+            var duration = (pointerHistory[0].timestamp - pointerHistory[pointerHistory.length - 1].timestamp) / 1000;
+
+            if (type == 'x') {
+                return (pointerHistory[0].x - pointerHistory[pointerHistory.length - 1].x) / duration;
+            }
+
+            if (type == 'y') {
+                return (pointerHistory[0].y - pointerHistory[pointerHistory.length - 1].y) / duration;
+            }
+        }
+
+        return 0;
+    }
+
     function setEvents() {
         document.addEventListener('mousedown', pointerDown);
         document.addEventListener('touchstart', pointerDown);
@@ -141,11 +183,19 @@
         pointerStartX = getCursorPosition(e, 'x');
         pointerStartY = getCursorPosition(e, 'y');
 
+        currentPageX = getCursorPosition(e, 'x');
+        currentPageY = getCursorPosition(e, 'y');
+
         mainElement.setAttribute('data-shuttle-slider-holding', '');
     }
 
     function pointerMove(e) {
         if (!isPointerDown) return;
+
+        currentPageX = getCursorPosition(e, 'x');
+        currentPageY = getCursorPosition(e, 'y');
+
+        var mainRect = mainElement.getBoundingClientRect();
 
         var offsetX = getCursorPosition(e, 'x') - pointerStartX;
         var offsetY = getCursorPosition(e, 'y') - pointerStartY;
@@ -159,6 +209,7 @@
             )
         ) {
             isDragging = true;
+            pointerHistory = [];
             startDragX = getCursorPosition(e, 'x');
             startDragY = getCursorPosition(e, 'y');
 
@@ -166,6 +217,7 @@
             startTranslateY = getTranslate('y');
 
             mainElement.setAttribute('data-shuttle-slider-dragging', '');
+            intervalPointer();
         }
 
         if (!isDragging) return;
@@ -184,20 +236,16 @@
             translateY += dragY;
         }
 
-        if (0 < translateX) {
+        if (translateX < getMaxOffset('x') && !(getContentSize('x') < mainRect.width)) {
+            translateX = getMaxOffset('x') + ((getMaxOffset('x') - translateX) * -1 * dragElastic);
+        } else if (0 < translateX || getContentSize('x') < mainRect.width) {
             translateX *= dragElastic;
         }
 
-        if (translateX < getMaxOffset('x')) {
-            translateX = getMaxOffset('x') + ((getMaxOffset('x') - translateX) * -1 * dragElastic);
-        }
-
-        if (0 < translateY) {
-            translateY *= dragElastic;
-        }
-
-        if (translateY < getMaxOffset('y')) {
+        if (translateY < getMaxOffset('y') && !(getContentSize('y') < mainRect.height)) {
             translateY = getMaxOffset('y') + ((getMaxOffset('y') - translateY) * -1 * dragElastic);
+        } else if (0 < translateY || getContentSize('y') < mainRect.height) {
+            translateY *= dragElastic;
         }
 
         contentElement.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px)';
@@ -205,6 +253,8 @@
 
     function pointerUp(e) {
         if (!isPointerDown) return;
+
+        isPointerDown = false;
 
         stopDragging();
     }
@@ -217,13 +267,17 @@
         mainElement.removeAttribute('data-shuttle-slider-dragging');
         mainElement.removeAttribute('data-shuttle-slider-holding');
 
-        var endTranslateX = getTranslate('x') * -1;
-        var endTranslateY = getTranslate('y') * -1;
+        var extraSpeedDistanceX = pointerSpeed('x') / 10000;
+        var extraSpeedDistanceY = pointerSpeed('y') / 10000;
+
+        var endTranslateX = (getTranslate('x') + extraSpeedDistanceX) * -1;
+        var endTranslateY = (getTranslate('y') + extraSpeedDistanceY) * -1;
 
         childrenElements = getElementChildren();
 
         var mainRect = mainElement.getBoundingClientRect();
         var contentRect = contentElement.getBoundingClientRect();
+
 
         var translateX = 0;
         var translateY = 0;
@@ -251,10 +305,33 @@
 
         if (!foundChildX) {
             translateX = maxOffsetX;
+            if (childrenElements.children && childrenElements.children.length > 0) {
+                foundChildX = childrenElements.children[childrenElements.children.length - 1];
+            }
         }
 
         if (!foundChildY) {
             translateY = maxOffsetY;
+            if (childrenElements.children && childrenElements.children.length > 0) {
+                foundChildY = childrenElements.children[childrenElements.children.length - 1];
+            }
+        }
+
+        if (foundChildX) {
+            if (startTranslateX - 5 <= translateX && translateX < startTranslateX + 5) {
+                if (pointerSpeed('x') < -500) {
+                    if (foundChildX.nextElementSibling) {
+                        translateX = translateX - foundChildX.getBoundingClientRect().width;
+                        foundChildX = foundChildX.nextElementSibling;
+                    }
+                }
+                if (500 < pointerSpeed('x')) {
+                    if (foundChildX.previousElementSibling) {
+                        translateX = translateX + foundChildX.previousElementSibling.getBoundingClientRect().width;
+                        foundChildX = foundChildX.previousElementSibling;
+                    }
+                }
+            }
         }
 
         translateX = Math.max(translateX, maxOffsetX);

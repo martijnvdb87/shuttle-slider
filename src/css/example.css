@@ -1,5 +1,37 @@
+body {
+    margin: 0px;
+    background: #130f40;
+}
+
 #example-1 > ol > li {
-    width: 250px;
-    height: 250px;
-    border: 1px solid #ccc;
+    width: 100vw;
+    height: 100vh;
+}
+
+#example-1 > ol > li:nth-child(1) {
+    background: #eb4d4b;
+}
+
+#example-1 > ol > li:nth-child(2) {
+    background: #f0932b;
+}
+
+#example-1 > ol > li:nth-child(3) {
+    background: #f9ca24;
+}
+
+#example-1 > ol > li:nth-child(4) {
+    background: #6ab04c;
+}
+
+#example-1 > ol > li:nth-child(5) {
+    background: #22a6b3;
+}
+
+#example-1 > ol > li:nth-child(6) {
+    background: #4834d4;
+}
+
+#example-1 > ol > li:nth-child(7) {
+    background: #be2edd;
 }
