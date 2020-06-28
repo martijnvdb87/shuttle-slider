@@ -9,6 +9,7 @@
     var pointerStartY = 0;
     var isDragging = false;
     var dragMargin = 3;
+    var dragElastic = 0.2;
 
     var startDragX = 0;
     var startDragY = 0;
@@ -19,7 +20,6 @@
     function init() {
         setEvents();
     }
-
 
     function getElement(e) {
         var target = false;
@@ -90,19 +90,32 @@
         childrenElements = getElementChildren();
         if (childrenElements.length > 0) {
             var mainRect = mainElement.getBoundingClientRect();
-            var contentRect = contentElement.getBoundingClientRect();
-            var lastChild = childrenElements[childrenElements.length - 1].getBoundingClientRect();
 
             if (type == 'x') {
-                return (lastChild.x + lastChild.width - contentRect.x - mainRect.width) * -1;
+                return (getContentSize('x') - mainRect.width) * -1;
             }
 
             if (type == 'y') {
-                return (lastChild.y + lastChild.height - contentRect.y - mainRect.height) * -1;
+                return (getContentSize('y') - mainRect.height) * -1;
             }
         }
     }
 
+    function getContentSize(type) {
+        childrenElements = getElementChildren();
+        if (childrenElements.length > 0) {
+            var contentRect = contentElement.getBoundingClientRect();
+            var lastChild = childrenElements[childrenElements.length - 1].getBoundingClientRect();
+
+            if (type == 'x') {
+                return lastChild.x + lastChild.width - contentRect.x;
+            }
+
+            if (type == 'y') {
+                return lastChild.y + lastChild.height - contentRect.y;
+            }
+        }
+    }
 
     function setEvents() {
         document.addEventListener('mousedown', pointerDown);
@@ -171,12 +184,20 @@
             translateY += dragY;
         }
 
-        if (0 < translateX || translateX < getMaxOffset('x')) {
-            //
+        if (0 < translateX) {
+            translateX *= dragElastic;
         }
 
-        if (0 < translateY || translateY < getMaxOffset('y')) {
-            //
+        if (translateX < getMaxOffset('x')) {
+            translateX = getMaxOffset('x') + ((getMaxOffset('x') - translateX) * -1 * dragElastic);
+        }
+
+        if (0 < translateY) {
+            translateY *= dragElastic;
+        }
+
+        if (translateY < getMaxOffset('y')) {
+            translateY = getMaxOffset('y') + ((getMaxOffset('y') - translateY) * -1 * dragElastic);
         }
 
         contentElement.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px)';
@@ -196,19 +217,18 @@
         mainElement.removeAttribute('data-shuttle-slider-dragging');
         mainElement.removeAttribute('data-shuttle-slider-holding');
 
-
         var endTranslateX = getTranslate('x') * -1;
         var endTranslateY = getTranslate('y') * -1;
 
-
         childrenElements = getElementChildren();
 
+        var mainRect = mainElement.getBoundingClientRect();
         var contentRect = contentElement.getBoundingClientRect();
 
         var translateX = 0;
         var translateY = 0;
 
-        childrenElements.find(function (child) {
+        var foundChildX = childrenElements.find(function (child) {
             var childRect = child.getBoundingClientRect();
 
             if (endTranslateX < childRect.x - contentRect.x + (childRect.width / 2)) {
@@ -217,7 +237,7 @@
             }
         });
 
-        childrenElements.find(function (child) {
+        var foundChildY = childrenElements.find(function (child) {
             var childRect = child.getBoundingClientRect();
 
             if (endTranslateY < childRect.y - contentRect.y + (childRect.height / 2)) {
@@ -226,9 +246,27 @@
             }
         });
 
-        translateX = Math.max(translateX, getMaxOffset('x'));
-        translateY = Math.max(translateY, getMaxOffset('y'));
+        var maxOffsetX = getMaxOffset('x');
+        var maxOffsetY = getMaxOffset('y');
 
+        if (!foundChildX) {
+            translateX = maxOffsetX;
+        }
+
+        if (!foundChildY) {
+            translateY = maxOffsetY;
+        }
+
+        translateX = Math.max(translateX, maxOffsetX);
+        translateY = Math.max(translateY, maxOffsetY);
+
+        if (getContentSize('x') <= mainRect.width) {
+            translateX = 0;
+        }
+
+        if (getContentSize('y') <= mainRect.heigth) {
+            translateY = 0;
+        }
 
         if (mode == 'x') {
             translateY = 0;
