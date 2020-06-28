@@ -8,8 +8,8 @@
     var pointerStartX = 0;
     var pointerStartY = 0;
     var isDragging = false;
-    var dragMargin = 3;
-    var dragElastic = 0.2;
+    var dragMargin = 5;
+    var dragElastic = 0.3;
 
     var startDragX = 0;
     var startDragY = 0;
@@ -79,15 +79,15 @@
     }
 
     function getTranslate(type) {
-        var targetRect = mainElement.getBoundingClientRect();
+        var mainRect = mainElement.getBoundingClientRect();
         var contentRect = contentElement.getBoundingClientRect();
 
         if (type == 'x') {
-            return contentRect.x - targetRect.x;
+            return contentRect.x - mainRect.x;
         }
 
         if (type == 'y') {
-            return contentRect.y - targetRect.y;
+            return contentRect.y - mainRect.y;
         }
     }
 
@@ -119,6 +119,41 @@
             if (type == 'y') {
                 return lastChild.y + lastChild.height - contentRect.y;
             }
+        }
+    }
+
+    function setCurrentSlides() {
+        var sliders = Array.prototype.slice.call(document.querySelectorAll('[data-shuttle-slider]'));
+        for (var i = 0; i < sliders.length; i++) {
+            var currentSlide = sliders[i].querySelector('[data-shuttle-slider-current-slide]');
+
+            if (!currentSlide) {
+                currentSlide = sliders[i].querySelector('ol > li');
+                currentSlide.setAttribute('data-shuttle-slider-current-slide', '');
+            }
+        }
+    }
+
+    function resizeWindow() {
+        var sliders = Array.prototype.slice.call(document.querySelectorAll('[data-shuttle-slider]'));
+        for (var i = 0; i < sliders.length; i++) {
+            var currentSlide = sliders[i].querySelector('[data-shuttle-slider-current-slide]');
+
+            var translateX = 0;
+            var translateY = 0;
+
+            if (currentSlide) {
+                var contentElement = currentSlide.parentNode;
+
+                var childRect = currentSlide.getBoundingClientRect();
+                var contentRect = contentElement.getBoundingClientRect();
+
+                translateX = contentRect.x - childRect.x;
+                translateY = contentRect.y - childRect.y;
+            }
+
+            contentElement.style.transitionDuration = '0ms';
+            contentElement.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px)';
         }
     }
 
@@ -168,6 +203,25 @@
 
         document.addEventListener('mouseup', pointerUp);
         document.addEventListener('touchend', pointerUp);
+
+        document.addEventListener('dragstart', pointerDragStart);
+
+        document.addEventListener('DOMContentLoaded', setCurrentSlides);
+
+        window.addEventListener('resize', resizeWindow);
+    }
+
+    function pointerDragStart(e) {
+        mainElement = getElement(e);
+
+        if (!mainElement) return;
+
+        if (
+            e.target.nodeName == 'A' ||
+            e.target.nodeName == 'IMG'
+        ) {
+            e.preventDefault();
+        }
     }
 
     function pointerDown(e) {
@@ -175,9 +229,15 @@
 
         if (!mainElement) return;
 
+        if (e.target.nodeName == 'INPUT') {
+            return;
+        }
+
+        mainElement.setAttribute('draggable', false);
+
         isPointerDown = true;
 
-        contentElement = getElementContent();
+        contentElement = getElementContent(mainElement);
         mode = getMode();
 
         pointerStartX = getCursorPosition(e, 'x');
@@ -215,6 +275,8 @@
 
             startTranslateX = getTranslate('x');
             startTranslateY = getTranslate('y');
+
+            contentElement.style.transitionDuration = '';
 
             mainElement.setAttribute('data-shuttle-slider-dragging', '');
             intervalPointer();
@@ -261,6 +323,8 @@
 
     function stopDragging() {
         if (!isDragging) return;
+
+        mainElement.removeAttribute('draggable');
 
         isPointerDown = false;
         isDragging = false;
@@ -319,16 +383,33 @@
 
         if (foundChildX) {
             if (startTranslateX - 5 <= translateX && translateX < startTranslateX + 5) {
-                if (pointerSpeed('x') < -500) {
+                if (pointerSpeed('x') < -100) {
                     if (foundChildX.nextElementSibling) {
                         translateX = translateX - foundChildX.getBoundingClientRect().width;
                         foundChildX = foundChildX.nextElementSibling;
                     }
                 }
-                if (500 < pointerSpeed('x')) {
+                if (100 < pointerSpeed('x')) {
                     if (foundChildX.previousElementSibling) {
                         translateX = translateX + foundChildX.previousElementSibling.getBoundingClientRect().width;
                         foundChildX = foundChildX.previousElementSibling;
+                    }
+                }
+            }
+        }
+
+        if (foundChildY) {
+            if (startTranslateY - 5 <= translateY && translateY < startTranslateY + 5) {
+                if (pointerSpeed('y') < -100) {
+                    if (foundChildY.nextElementSibling) {
+                        translateY = translateY - foundChildY.getBoundingClientRect().height;
+                        foundChildY = foundChildY.nextElementSibling;
+                    }
+                }
+                if (100 < pointerSpeed('y')) {
+                    if (foundChildY.previousElementSibling) {
+                        translateY = translateY + foundChildY.previousElementSibling.getBoundingClientRect().height;
+                        foundChildY = foundChildY.previousElementSibling;
                     }
                 }
             }
@@ -352,6 +433,47 @@
         if (mode == 'y') {
             translateX = 0;
         }
+
+        // if (!mainElement.ShuttleUI) mainElement.ShuttleUI = {};
+        // if (!mainElement.ShuttleUI.slider) mainElement.ShuttleUI.slider = {};
+
+        // if (mode == 'x' && foundChildX) {
+        //     mainElement.ShuttleUI.slider.currentSlider = foundChildX;
+        // }
+
+        // if (mode == 'y' && foundChildY) {
+        //     mainElement.ShuttleUI.slider.currentSlider = foundChildY;
+        // }
+
+        var currentSlide = Array.prototype.slice.call(contentElement.querySelectorAll('[data-shuttle-slider-current-slide]'));
+        for (var i = 0; i < currentSlide.length; i++) {
+            currentSlide[i].removeAttribute('data-shuttle-slider-current-slide');
+        }
+
+        if (mode == 'x' && foundChildX) {
+            foundChildX.setAttribute('data-shuttle-slider-current-slide', '');
+        }
+
+        if (mode == 'y' && foundChildY) {
+            foundChildY.setAttribute('data-shuttle-slider-current-slide', '');
+        }
+
+        var transitionDuration = 240;
+
+        if (mode == 'x') {
+            transitionDuration = ((translateX * -1) - endTranslateX) / (pointerSpeed('x') / 1000);
+
+        } else if (mode == 'y') {
+            transitionDuration = ((translateY * -1) - endTranslateY) / (pointerSpeed('y') / 1000);
+
+        }
+
+        transitionDuration = Math.max(transitionDuration, transitionDuration * -1);
+
+        transitionDuration = Math.min(transitionDuration, 540);
+        transitionDuration = Math.max(transitionDuration, 120);
+
+        contentElement.style.transitionDuration = transitionDuration + 'ms';
 
         contentElement.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px)';
     }
