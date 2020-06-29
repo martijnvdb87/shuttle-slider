@@ -179,19 +179,27 @@
     }
 
     function pointerSpeed(type) {
+        var speed = 0;
+
         if (pointerHistory.length > 0) {
             var duration = (pointerHistory[0].timestamp - pointerHistory[pointerHistory.length - 1].timestamp) / 1000;
 
             if (type == 'x') {
-                return (pointerHistory[0].x - pointerHistory[pointerHistory.length - 1].x) / duration;
+                speed = (pointerHistory[0].x - pointerHistory[pointerHistory.length - 1].x) / duration;
             }
 
             if (type == 'y') {
-                return (pointerHistory[0].y - pointerHistory[pointerHistory.length - 1].y) / duration;
+                speed = (pointerHistory[0].y - pointerHistory[pointerHistory.length - 1].y) / duration;
             }
+
+            if (isNaN(speed)) {
+                speed = 0;
+            }
+
+            speed *= 0.5;
         }
 
-        return 0;
+        return speed;
     }
 
     function setEvents() {
@@ -331,8 +339,18 @@
         mainElement.removeAttribute('data-shuttle-slider-dragging');
         mainElement.removeAttribute('data-shuttle-slider-holding');
 
-        var extraSpeedDistanceX = pointerSpeed('x') / 10000;
-        var extraSpeedDistanceY = pointerSpeed('y') / 10000;
+        var extraSpeedDistanceX = pointerSpeed('x');
+        var extraSpeedDistanceY = pointerSpeed('y');
+
+        extraSpeedDistanceX = Math.max(100, extraSpeedDistanceX);
+        extraSpeedDistanceX = Math.min(10000, extraSpeedDistanceX);
+
+        extraSpeedDistanceY = Math.max(100, extraSpeedDistanceY);
+        extraSpeedDistanceY = Math.min(10000, extraSpeedDistanceY);
+
+        extraSpeedDistanceX /= 10000;
+        extraSpeedDistanceY /= 10000;
+
 
         var endTranslateX = (getTranslate('x') + extraSpeedDistanceX) * -1;
         var endTranslateY = (getTranslate('y') + extraSpeedDistanceY) * -1;
@@ -433,17 +451,6 @@
         if (mode == 'y') {
             translateX = 0;
         }
-
-        // if (!mainElement.ShuttleUI) mainElement.ShuttleUI = {};
-        // if (!mainElement.ShuttleUI.slider) mainElement.ShuttleUI.slider = {};
-
-        // if (mode == 'x' && foundChildX) {
-        //     mainElement.ShuttleUI.slider.currentSlider = foundChildX;
-        // }
-
-        // if (mode == 'y' && foundChildY) {
-        //     mainElement.ShuttleUI.slider.currentSlider = foundChildY;
-        // }
 
         var currentSlide = Array.prototype.slice.call(contentElement.querySelectorAll('[data-shuttle-slider-current-slide]'));
         for (var i = 0; i < currentSlide.length; i++) {
